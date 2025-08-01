@@ -1,21 +1,24 @@
 import os
+import asyncio
 from dotenv import load_dotenv
-from pathlib import Path
-from llama_index.core import (
-    SimpleDirectoryReader,
-    VectorStoreIndex,
-    StorageContext,
-    load_index_from_storage,
-    Settings,
-)
+from llama_index.llms.openai import OpenAI
+from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from llama_index.core import StorageContext, load_index_from_storage
+from llama_index.core.workflow import Context  # For chat memory
 from llama_index.embeddings.openai import OpenAIEmbedding
-from openai import OpenAI
+from llama_index.core.settings import Settings
 
+from openai import OpenAI as OpenAIClient
+
+
+# Load environment variables
 load_dotenv()
 client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+# Register embedding model
 Settings.embed_model = OpenAIEmbedding(
     model_name="text-embedding-3-large",
-    client=client
+    client=client,
 )
 
 def create_index(data_path: str, data_file: str, index_name: str):
