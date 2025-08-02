@@ -17,7 +17,7 @@ client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 # Register embedding model
 Settings.embed_model = OpenAIEmbedding(
-    model_name="text-embedding-3-large",
+    model_name="text-embedding-ada-002",
     client=client,
 )
 

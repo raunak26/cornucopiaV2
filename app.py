@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Load index
-storage_context = StorageContext.from_defaults(persist_dir="index")
+storage_context = StorageContext.from_defaults(persist_dir="index/v219_ref")
 index = load_index_from_storage(storage_context)
 query_engine = index.as_query_engine()
 
