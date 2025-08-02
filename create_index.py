@@ -1,5 +1,4 @@
 import os
-import asyncio
 from dotenv import load_dotenv
 from llama_index.llms.openai import OpenAI
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
@@ -17,7 +16,7 @@ client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
 # Register embedding model
 Settings.embed_model = OpenAIEmbedding(
-    model_name="text-embedding-3-large",
+    model_name="text-embedding-ada-002",
     client=client,
 )
 
