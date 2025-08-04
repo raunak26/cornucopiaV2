@@ -14,9 +14,6 @@ from openai import OpenAI
 import os
 from agents import set_default_openai_client
 from dotenv import load_dotenv
-
-import os
-from dotenv import load_dotenv
 import asyncio
 
 def ensure_event_loop():
@@ -40,13 +37,38 @@ set_default_openai_client(client)
 
 ensure_event_loop()
 
+# --- UI Helper Functions ---
+def render_chat(role, message):
+    avatar = "🧑" if role == "user" else "🤖"
+    with st.chat_message(role, avatar=avatar):
+        st.markdown(message)
 
+def render_clarification(confirmation):
+    with st.container():
+        st.markdown("**🤖 Clarification:**")
+        st.info(confirmation)
+
+def render_protocol(code):
+    with st.container():
+        st.markdown("**🧬 Generated Protocol:**")
+        st.code(code, language="python")
+
+def render_simulation_status(stderr):
+    with st.container():
+        if not stderr:
+            st.success("✅ Protocol simulation succeeded. No errors detected.")
+        else:
+            st.error("❌ Protocol simulation failed.")
+            st.warning(f"QC Agent says: {_extract_missing(stderr)}")
+
+# --- Chat State ---
 if 'session_id' not in st.session_state:
     st.session_state['session_id'] = 'cornucopia_chat'
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []
 
-# --- Chat input and immediate display logic ---
+st.title("🔬 Cornucopia (Conversational Agent)")
+
 user_input = st.chat_input("Describe your experiment or answer the agent's question...", key="chat_input")
 
 if user_input:
@@ -59,37 +81,39 @@ if 'pending_message' in st.session_state:
     with st.spinner("Thinking..."):
         # Step 1: Prompt clarification
         clarify_result = Runner.run_sync(PromptCreatorAgent, pending)
-        st.write('PromptCreatorAgent output:', clarify_result.final_output)  # Debug output
-        st.code(clarify_result.final_output, language="json")
         clarified = json.loads(clarify_result.final_output)
         confirmation = clarified["confirmation"]
         clean_prompt = clarified["clean_prompt"]
-        st.session_state['chat_history'].append({'role': 'assistant', 'content': confirmation})
+        st.session_state['chat_history'].append({'role': 'assistant', 'content': confirmation, 'clarification': True})
 
-        # Step 2: Protocol generation
-        protocol_result = Runner.run_sync(ProtocolGeneratorAgent, clean_prompt)
-        agent_reply = protocol_result.final_output.strip()
-        st.session_state['chat_history'].append({'role': 'assistant', 'content': agent_reply})
-        # Step 3: Show protocol code if generated
-        if "protocol.load_instrument" in agent_reply and "for well in" in agent_reply:
-            def indent(code: str, spaces: int = 4) -> str:
-                pad = " " * spaces
-                return "\n".join(pad + line if line.strip() != "" else "" for line in code.splitlines())
+        # Only run protocol generator if clean_prompt exists
+        if not clean_prompt:
+            st.warning("Please describe your experiment (e.g., 'run a serial dilution').")
+            st.session_state['chat_history'].append({'role': 'assistant', 'content': "Please describe your experiment (e.g., 'run a serial dilution')."})
+        else:
+            # Step 2: Protocol generation
+            protocol_result = Runner.run_sync(ProtocolGeneratorAgent, clean_prompt)
+            agent_reply = protocol_result.final_output.strip()
+            st.session_state['chat_history'].append({'role': 'assistant', 'content': agent_reply, 'protocol': True})
+            # Step 3: Show protocol code if generated
+            if "protocol.load_instrument" in agent_reply and "for well in" in agent_reply:
+                def indent(code: str, spaces: int = 4) -> str:
+                    pad = " " * spaces
+                    return "\n".join(pad + line if line.strip() != "" else "" for line in code.splitlines())
+                full_protocol = get_fixed_header().rstrip() + "\n" + indent(agent_reply)
+                st.session_state['chat_history'].append({'role': 'assistant', 'content': full_protocol, 'protocol_code': True})
+                # Save and QC
+                path = save_protocol(full_protocol)
+                stderr = _simulate_protocol(path)
+                st.session_state['chat_history'].append({'role': 'assistant', 'content': stderr, 'qc': True})
 
-            full_protocol = get_fixed_header().rstrip() + "\n" + indent(agent_reply)
-            st.subheader("🧬 Generated Protocol")
-            st.code(full_protocol, language="python")
-            # Save and QC
-            path = save_protocol(full_protocol)
-            stderr = _simulate_protocol(path)
-            if not stderr:
-                st.success("✅ Protocol simulation succeeded.")
-            else:
-                st.error("❌ Simulation failed.")
-                st.warning(f"QC Agent says: {_extract_missing(stderr)}")
-
+# --- Render Chat History ---
 for msg in st.session_state['chat_history']:
-    if msg['role'] == 'user':
-        st.chat_message("user").write(msg['content'])
+    if msg.get('clarification'):
+        render_clarification(msg['content'])
+    elif msg.get('protocol_code'):
+        render_protocol(msg['content'])
+    elif msg.get('qc'):
+        render_simulation_status(msg['content'])
     else:
-        st.chat_message("assistant").write(msg['content'])
+        render_chat(msg['role'], msg['content'])
