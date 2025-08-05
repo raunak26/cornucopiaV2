@@ -1,5 +1,61 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+*.env
+
+# Jupyter / IPython / VSCode cache
+.ipynb_checkpoints/
+.vscode/
+*.code-workspace
+
+# Mac OS
 .DS_Store
-.venv/
-.venv/
-.env
-.env
+
+# Streamlit state / cache
+.streamlit/
+.st/
+
+# System-generated
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Test / output files
+*.log
+*.tmp
+*.bak
+*.out
+
+# Simulation / generated artifacts
+generated/generated_protocol.py
+*.pyc
+*.pyo
+generated_protocol.py
+
+# Vector store cache (LlamaIndex)
+index/
+index*/  # optional if you want to exclude all versioned vector indexes
+
+# MyPy / Pyright
+.mypy_cache/
+.pyright/
+
+# Opentrons build cache
+.opentrons/
+
+# Egg info
+*.egg-info/
+dist/
+build/
