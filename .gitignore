@@ -39,6 +39,7 @@ desktop.ini
 *.out
 
 # Simulation / generated artifacts
+generated/
 generated/generated_protocol.py
 *.pyc
 *.pyo
